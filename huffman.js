@@ -1,40 +1,32 @@
 function Tree(){
-	
+	this.children=[];
 }
 Tree.prototype={
 	value: 0,
 	numChildren: 0,
-	right: null,
-	left: null,
+	children: [],
 	printCode: function(prefix){
 		if(!prefix)prefix="";
-		this.left.printCode(prefix+"0");
-		this.right.printCode(prefix+"1");
-	},
-	setChildren: function(child1, child2){
-		if(child1.numChildren<child2.numChildren){
-			this.left=child1;
-			this.right=child2;
-		}else{
-			this.left=child2;
-			this.right=child1;
+		var ret=0;
+		for(var i=0; i<this.children.length; i++){
+			ret+=this.children[i].printCode(prefix+i);
 		}
-		this.value=this.left.value+this.right.value;
-		this.numChildren=this.left.numChildren+this.right.numChildren;
+		return ret;
 	},
-	switch: function(str){
+	setChildren: function(arr){
+		this.children=arr;
+		this.children.sort(function(obj1, obj2){return obj1.numChildren-obj2.numChildren});
+		this.value=this.numChildren=0;
+		for(var i=0; i<this.children.length; i++){
+			this.value += this.children[i].value;
+			this.numChildren += this.children[i].numChildren;
+		}
+	},
+	get: function(str){
 		if(!str || str.length==0){
-			var temp=this.left;
-			this.left=this.right;
-			this.right=temp;
+			return this;
 		}else{
-			var child;
-			if(str.substr(0,1)=="0"){
-				child = this.left;
-			}else{
-				child = this.right;
-			}
-			child.switch(str.substr(1));
+			return this.children[str.substr(0,1)].get(str.substr(1));
 		}
 	}
 };
@@ -47,19 +39,29 @@ Huffman.prototype=new Tree;
 Huffman.prototype.numChildren=1;
 Huffman.prototype.printCode=function(code){
 	console.log(code, this.name, this.value);
+	return this.value*code.length;
 };
-Huffman.calc = function(obj){
+Huffman.remaining = function(len, gen){
+	return ((gen-len)%(gen-1)+gen-1)%(gen-1);
+};
+Huffman.calc = function(obj, gen){
+	if(!gen) gen=2;
 	var arr=[];
 	for(var i in obj){
 		arr.push(new Huffman(i, obj[i]));
 	}
-
-	while(arr.length>1){
+	var remaining = Huffman.remaining(arr.length, gen);
+	for(var i=0; i<remaining; i++){
+		arr.push(new Huffman("ε", 0));
+	}
+	while(arr.length>=gen){
 		arr.sort(function(obj1, obj2){return obj2.value-obj1.value});
-		var huff1=arr.pop();
-		var huff2=arr.pop();
+		var children=[];
+		for(var i=0; i<gen; i++){
+			children.push(arr.pop());
+		}
 		var tree=new Tree();
-		tree.setChildren(huff1, huff2);
+		tree.setChildren(children);
 		arr.push(tree);
 	}
 	return arr[0];
